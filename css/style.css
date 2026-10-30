@@ -1,0 +1,136 @@
+/* Layout: a lab workbench. Settings rail on top, one experiment per tab, results stream in as models finish. */
+:root {
+  --bg: #EDF0F3; --surface: #FAFBFC; --sunk: #E3E8EE; --ink: #17202B; --muted: #566273; --line: #D1D8E0;
+  --accent: #2A4FA6; --accent-ink: #FFFFFF;
+  --lr: #2A6BB0; --rf: #10877A; --dt: #C2601A;
+  --good: #1E7A45; --warn: #A2620B; --bad: #B23A3A;
+  --display: "Source Serif 4", Georgia, serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0E1319; --surface: #151C24; --sunk: #1B2430; --ink: #E4E9EF; --muted: #95A1B1; --line: #2A3440;
+  --accent: #86A1F2; --accent-ink: #0E1319;
+  --lr: #70A9E9; --rf: #3EC3AD; --dt: #F09552; --good: #57C487; --warn: #E6B04F; --bad: #EF7B7B; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0E1319; --surface: #151C24; --sunk: #1B2430; --ink: #E4E9EF; --muted: #95A1B1; --line: #2A3440;
+  --accent: #86A1F2; --accent-ink: #0E1319;
+  --lr: #70A9E9; --rf: #3EC3AD; --dt: #F09552; --good: #57C487; --warn: #E6B04F; --bad: #EF7B7B; color-scheme: dark }
+
+* { box-sizing: border-box }
+[hidden] { display: none !important }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 48px }
+.wrap { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px }
+h1, h2, h3 { margin: 0; text-wrap: balance }
+h1 { font-family: var(--display); font-weight: 600; font-size: clamp(26px, 4vw, 36px); line-height: 1.1; letter-spacing: -0.01em }
+h2 { font-family: var(--display); font-weight: 600; font-size: 22px; line-height: 1.2 }
+h3 { font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted) }
+p { margin: 0 }
+.num, .mono { font-family: var(--mono); font-variant-numeric: tabular-nums }
+.muted { color: var(--muted) }
+button, input, select { font: inherit; color: inherit }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+
+/* Header */
+.masthead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 12px 24px }
+.masthead .kicker { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent) }
+.masthead p.lede { color: var(--muted); max-width: 62ch; margin-top: 6px }
+
+/* Settings rail */
+.rail { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px;
+  display: grid; grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 1fr)); gap: 18px 24px }
+.field { display: flex; flex-direction: column; gap: 8px; min-width: 0 }
+.field label, .field .lbl { font-size: 12px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted) }
+.field .val { font-family: var(--mono); font-size: 13px; color: var(--ink); text-transform: none; letter-spacing: 0; font-weight: 500 }
+.seg { display: flex; flex-wrap: wrap; gap: 4px; background: var(--sunk); padding: 4px; border-radius: 8px }
+.seg button { flex: 1 1 auto; border: 0; background: transparent; padding: 7px 10px; border-radius: 6px; cursor: pointer; font-size: 14px; color: var(--muted); white-space: nowrap }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.12) }
+.dsinfo { font-size: 13px; color: var(--muted) }
+input[type=range] { width: 100%; accent-color: var(--accent) }
+.seedrow { display: flex; gap: 6px }
+.seedrow input { flex: 1; min-width: 0; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); font-family: var(--mono); font-size: 14px }
+.btn { border: 1px solid var(--line); background: var(--surface); padding: 7px 12px; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 14px; white-space: nowrap }
+.btn:hover { border-color: var(--muted) }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600 }
+.btn.primary:hover { filter: brightness(1.08) }
+.btn:disabled { opacity: 0.45; cursor: not-allowed }
+.step { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--muted) }
+.step b { font-family: var(--mono); font-weight: 500; color: var(--ink); font-size: 15px }
+.upload { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px dashed var(--line); border-radius: 8px; font-size: 13px }
+.upload.drag { border-color: var(--accent); background: var(--sunk) }
+.upload .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap }
+.upload select { padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); max-width: 100% }
+.err { color: var(--bad) }
+
+/* Tabs */
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none }
+.tabs button { border: 0; background: none; padding: 10px 14px 12px; cursor: pointer; color: var(--muted); font-size: 15px; white-space: nowrap; border-bottom: 2px solid transparent; margin-bottom: -1px; display: flex; flex-direction: column; align-items: flex-start; gap: 0 }
+.tabs button small { font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); font-weight: 600 }
+.tabs button[aria-selected="true"] small { color: var(--accent) }
+
+.panel { display: flex; flex-direction: column; gap: 18px }
+.intro { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px 24px; align-items: end }
+.intro p { color: var(--muted); max-width: 70ch; margin-top: 6px }
+.controls { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: end; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px }
+.controls .field { min-width: 180px; flex: 1 1 180px }
+.checks { display: flex; flex-wrap: wrap; gap: 6px }
+.chip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 10px; border: 1px solid var(--line); border-radius: 999px; cursor: pointer; font-size: 14px; user-select: none; background: var(--bg) }
+.chip input { accent-color: var(--accent); margin: 0 }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex: none }
+.controls select { padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg) }
+.runbox { display: flex; gap: 8px; align-items: center; flex: 0 0 auto }
+
+.progress { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--muted); min-height: 20px }
+.bar { flex: 1; height: 4px; background: var(--sunk); border-radius: 2px; overflow: hidden; max-width: 420px }
+.bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 120ms linear }
+.stale { background: var(--sunk); border-left: 3px solid var(--warn); padding: 8px 12px; border-radius: 4px; font-size: 14px }
+
+.insight { font-family: var(--display); font-size: 19px; line-height: 1.45; max-width: 75ch; text-wrap: pretty }
+.insight b { font-weight: 600 }
+
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; border-top: 3px solid var(--c, var(--accent)) }
+.kpi .name { font-size: 13px; font-weight: 600; color: var(--muted) }
+.kpi .big { font-family: var(--mono); font-size: 28px; font-weight: 500; line-height: 1.15; font-variant-numeric: tabular-nums }
+.kpi .sub { font-family: var(--mono); font-size: 12.5px; color: var(--muted) }
+.kpi .lead { font-size: 13px }
+
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px 10px; display: flex; flex-direction: column; gap: 8px; min-width: 0 }
+.card .cap { font-size: 13px; color: var(--muted) }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--muted) }
+.legend span { display: inline-flex; align-items: center; gap: 6px }
+.chart { width: 100%; min-height: 240px }
+.chart svg { display: block; width: 100%; overflow: visible }
+.chart text { font-family: var(--mono); font-size: 11px; fill: var(--muted) }
+
+.tablewrap { overflow-x: auto }
+table { border-collapse: collapse; width: 100%; font-size: 14px }
+th, td { padding: 7px 10px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap }
+th:first-child, td:first-child { text-align: left }
+th { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted) }
+td { font-family: var(--mono); font-variant-numeric: tabular-nums }
+td:first-child { font-family: var(--body) }
+.pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-family: var(--body); font-weight: 600 }
+.pill.yes { background: color-mix(in srgb, var(--good) 16%, transparent); color: var(--good) }
+.pill.no { background: color-mix(in srgb, var(--muted) 16%, transparent); color: var(--muted) }
+.bignum { display: flex; flex-direction: column; gap: 2px }
+.bignum .v { font-family: var(--mono); font-size: 40px; font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums }
+.formula { font-family: var(--mono); font-size: 13px; color: var(--muted) }
+.notes { font-size: 13px; color: var(--muted); max-width: 80ch }
+footer { font-size: 12.5px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px }
+
+@media (max-width: 900px) {
+  .rail { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+  .rail .field:first-child { grid-column: 1 / -1 }
+  .grid2 { grid-template-columns: minmax(0, 1fr) }
+}
+@media (max-width: 520px) {
+  .rail { grid-template-columns: minmax(0, 1fr) }
+  .intro { grid-template-columns: minmax(0, 1fr) }
+  .insight { font-size: 17px }
+  .kpi .big { font-size: 24px }
+}
+@media (prefers-reduced-motion: reduce) { .bar i { transition: none } }

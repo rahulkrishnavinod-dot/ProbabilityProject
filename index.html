@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Accuracy Variation Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <div>
+      <div class="kicker">Probability &amp; Statistics · interactive companion</div>
+      <h1>Accuracy Variation Lab</h1>
+      <p class="lede">Train real classifiers in your browser and watch how accuracy moves when only the random seed, the train/test split, or the test-set size changes.</p>
+    </div>
+  </header>
+
+  <section class="rail" aria-label="Dataset and shared settings">
+    <div class="field">
+      <span class="lbl">Dataset</span>
+      <div class="seg" role="group" aria-label="Dataset">
+        <button id="ds-bc" data-ds="bc" aria-pressed="true">Breast cancer</button>
+        <button id="ds-digits" data-ds="digits" aria-pressed="false">Digits</button>
+        <button id="ds-csv" data-ds="csv" aria-pressed="false">Your CSV</button>
+      </div>
+      <div class="dsinfo" id="dsinfo"></div>
+      <div class="upload" id="upload" hidden>
+        <div class="row"><label class="btn" for="csvfile">Choose CSV file</label><input type="file" id="csvfile" accept=".csv,text/csv" hidden><span>or drop it here</span></div>
+        <div class="row" id="targetrow" hidden><span>Label column</span><select id="targetsel"></select></div>
+        <div id="csvmsg">Needs a header row, numeric feature columns and one label column with exactly two values.</div>
+      </div>
+    </div>
+    <div class="field">
+      <label for="testfrac">Test set <span class="val" id="testfrac-v"></span></label>
+      <input type="range" id="testfrac" min="10" max="50" step="5" value="20">
+      <div class="step">one test case = <b id="stepv"></b></div>
+    </div>
+    <div class="field">
+      <label for="ntrees">Trees in forest <span class="val" id="ntrees-v"></span></label>
+      <input type="range" id="ntrees" min="5" max="100" step="5" value="25">
+      <div class="step">project setting: <b>25</b></div>
+    </div>
+    <div class="field">
+      <label for="seed">Master seed</label>
+      <div class="seedrow"><input id="seed" inputmode="numeric" value="20260928" aria-label="Master seed"><button class="btn" id="reroll" title="Pick a new random master seed">New seed</button></div>
+      <div class="step">same seed, same results</div>
+    </div>
+  </section>
+
+  <nav class="tabs" role="tablist" aria-label="Experiments">
+    <button role="tab" id="tab-splits" data-tab="splits" aria-selected="true"><small>Experiment B</small>Split count</button>
+    <button role="tab" id="tab-seeds" data-tab="seeds" aria-selected="false"><small>Experiment A</small>Seed only</button>
+    <button role="tab" id="tab-aa" data-tab="aa" aria-selected="false"><small>Experiment C</small>A/A test</button>
+    <button role="tab" id="tab-testsize" data-tab="testsize" aria-selected="false"><small>Test-set size</small>Binomial spread</button>
+  </nav>
+
+  <!-- ============ Experiment B ============ -->
+  <section class="panel" id="panel-splits" role="tabpanel" aria-labelledby="tab-splits">
+    <div class="intro">
+      <div>
+        <h2>Three models on the same random splits</h2>
+        <p>Each split is a block: every model is trained and tested on exactly the same cases. Raise the split count and watch the running mean settle and its confidence band narrow.</p>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="field"><label for="b-k">Number of splits <span class="val" id="b-k-v"></span></label><input type="range" id="b-k" min="5" max="100" step="5" value="30"></div>
+      <div class="field"><span class="lbl">Models</span><div class="checks" id="b-models"></div></div>
+      <div class="runbox"><button class="btn primary" id="b-run">Run</button><button class="btn" id="b-stop" disabled>Stop</button></div>
+    </div>
+    <div class="progress"><span id="b-prog">Ready</span><div class="bar"><i id="b-bar"></i></div></div>
+    <div class="stale" id="b-stale" hidden>Settings changed since this run. Press Run to update.</div>
+    <p class="insight" id="b-insight"></p>
+    <div class="kpis" id="b-kpis"></div>
+    <div class="grid2">
+      <div class="card"><h3>Running mean as splits accumulate</h3><div class="legend" id="b-leg1"></div><div class="chart" id="b-running"></div><p class="cap">Shaded band: 95% t interval for the mean of the splits so far.</p></div>
+      <div class="card"><h3>Accuracy on every split</h3><div class="legend" id="b-leg2"></div><div class="chart" id="b-persplit"></div><p class="cap">Lines that dip together mark hard splits: the block effect.</p></div>
+      <div class="card"><h3>Distribution across splits</h3><div class="chart" id="b-box"></div><p class="cap">Box = middle 50%, line = median, whiskers = 1.5 × IQR, dots = outliers.</p></div>
+      <div class="card"><h3>Blocking: CRD vs RBD</h3>
+        <div class="bignum"><span class="v" id="b-re">–</span><span class="muted">relative efficiency of RBD over CRD</span></div>
+        <p class="formula" id="b-reform"></p>
+        <div class="tablewrap"><table id="b-anova"></table></div>
+      </div>
+    </div>
+    <div class="card"><h3>Paired t-tests on matched splits</h3><div class="tablewrap"><table id="b-paired"></table></div><p class="cap">Corrected interval uses the Nadeau–Bengio factor (1/k + test/train) because random splits overlap. p-values are not adjusted for multiple comparisons.</p></div>
+  </section>
+
+  <!-- ============ Experiment A ============ -->
+  <section class="panel" id="panel-seeds" role="tabpanel" aria-labelledby="tab-seeds" hidden>
+    <div class="intro"><div>
+      <h2>One fixed split, many random seeds</h2>
+      <p>The training and test cases never change. Only the model’s random seed does. Any spread you see is pure fitting randomness.</p>
+    </div></div>
+    <div class="controls">
+      <div class="field"><label for="a-n">Number of seeds <span class="val" id="a-n-v"></span></label><input type="range" id="a-n" min="10" max="200" step="10" value="50"></div>
+      <div class="field"><span class="lbl">Models</span><div class="checks" id="a-models"></div></div>
+      <div class="runbox"><button class="btn primary" id="a-run">Run</button><button class="btn" id="a-stop" disabled>Stop</button></div>
+    </div>
+    <div class="progress"><span id="a-prog">Press Run to start</span><div class="bar"><i id="a-bar"></i></div></div>
+    <div class="stale" id="a-stale" hidden>Settings changed since this run. Press Run to update.</div>
+    <p class="insight" id="a-insight"></p>
+    <div class="kpis" id="a-kpis"></div>
+    <div class="grid2">
+      <div class="card"><h3>How often each score occurred</h3><div class="legend" id="a-leg1"></div><div class="chart" id="a-hist"></div><p class="cap" id="a-histcap">Scores sit on a grid: each bar is one more correct test case.</p></div>
+      <div class="card"><h3>Precision of the mean as seeds accumulate</h3><div class="legend" id="a-leg2"></div><div class="chart" id="a-hw"></div><p class="cap">95% t-interval half-width. More seeds narrow it, but only for this one split.</p></div>
+    </div>
+    <div class="card"><h3>Summary</h3><div class="tablewrap"><table id="a-table"></table></div></div>
+  </section>
+
+  <!-- ============ Experiment C ============ -->
+  <section class="panel" id="panel-aa" role="tabpanel" aria-labelledby="tab-aa" hidden>
+    <div class="intro"><div>
+      <h2>Two copies of the same model</h2>
+      <p>Both arms use an identical procedure, so any gap between them is noise. <b>D1</b> keeps the split and changes the seed; <b>D2</b> changes both.</p>
+    </div></div>
+    <div class="controls">
+      <div class="field"><label for="c-model">Model</label><select id="c-model"><option value="forest">Random forest</option><option value="tree">Decision tree</option><option value="lr">Logistic regression</option></select></div>
+      <div class="field"><label for="c-n">Pairs per condition <span class="val" id="c-n-v"></span></label><input type="range" id="c-n" min="50" max="1000" step="50" value="200"></div>
+      <div class="field"><label for="c-thr">Gap threshold</label><select id="c-thr"><option value="1">at least 1 pp</option><option value="2">at least 2 pp</option><option value="3">at least 3 pp</option></select></div>
+      <div class="runbox"><button class="btn primary" id="c-run">Run</button><button class="btn" id="c-stop" disabled>Stop</button></div>
+    </div>
+    <div class="progress"><span id="c-prog">Press Run to start</span><div class="bar"><i id="c-bar"></i></div></div>
+    <div class="stale" id="c-stale" hidden>Settings changed since this run. Press Run to update.</div>
+    <p class="insight" id="c-insight"></p>
+    <div class="kpis" id="c-kpis"></div>
+    <div class="grid2">
+      <div class="card"><h3>Size of the gap between identical runs</h3><div class="legend" id="c-leg1"></div><div class="chart" id="c-hist"></div><p class="cap">Share of pairs at each gap, in test cases. The threshold line marks the first gap that counts.</p></div>
+      <div class="card"><h3>Running proportion over the threshold</h3><div class="legend" id="c-leg2"></div><div class="chart" id="c-run-ch"></div><p class="cap">Band: 95% Z interval for a proportion, p̂ ± 1.96√(p̂(1−p̂)/n).</p></div>
+    </div>
+    <p class="notes">These are gap frequencies, not Type I error rates: no decision rule declares a winner here.</p>
+  </section>
+
+  <!-- ============ Test-set size ============ -->
+  <section class="panel" id="panel-testsize" role="tabpanel" aria-labelledby="tab-testsize" hidden>
+    <div class="intro"><div>
+      <h2>Bigger test sets, smaller spread</h2>
+      <p>Accuracy on n test cases behaves like a Binomial proportion with SD √(p(1−p)/n). This sweep repeats random splits at each test size and compares the observed spread with that reference.</p>
+    </div></div>
+    <div class="controls">
+      <div class="field"><label for="t-model">Model</label><select id="t-model"><option value="lr">Logistic regression</option><option value="forest">Random forest</option><option value="tree">Decision tree</option></select></div>
+      <div class="field"><label for="t-k">Splits per test size <span class="val" id="t-k-v"></span></label><input type="range" id="t-k" min="10" max="60" step="5" value="30"></div>
+      <div class="runbox"><button class="btn primary" id="t-run">Run</button><button class="btn" id="t-stop" disabled>Stop</button></div>
+    </div>
+    <div class="progress"><span id="t-prog">Press Run to start</span><div class="bar"><i id="t-bar"></i></div></div>
+    <div class="stale" id="t-stale" hidden>Settings changed since this run. Press Run to update.</div>
+    <p class="insight" id="t-insight"></p>
+    <div class="grid2">
+      <div class="card"><h3>Spread across splits vs test-set size</h3><div class="legend" id="t-leg1"></div><div class="chart" id="t-sd"></div><p class="cap">Observed SD mixes test-set, training-set and seed variation; the Binomial line is a reference scale.</p></div>
+      <div class="card"><h3>Mean accuracy with 95% interval</h3><div class="chart" id="t-mean"></div><p class="cap">The step size 1/n shrinks as the test set grows.</p></div>
+    </div>
+    <div class="card"><h3>Sweep table</h3><div class="tablewrap"><table id="t-table"></table></div></div>
+  </section>
+
+  <footer>
+    <span id="engine-note">Models run in your browser.</span>
+    <span>Breast Cancer Wisconsin (Diagnostic), Wolberg et al., 1993 · Optical Recognition of Handwritten Digits, Alpaydin &amp; Kaynak, 1998 · UCI ML Repository</span>
+  </footer>
+</div>
+
+<script src="js/engine.js"></script>
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
